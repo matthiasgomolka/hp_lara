@@ -3,11 +3,14 @@ library(tidyverse)
 library(vroom)
 library(tidytext)
 library(ggplot2)
+library(ggchicklet)
 
 movies <- read_delim("data/movies.csv", delim = ";", col_types = "ci____") |>
     mutate(
         movie_abbr = movie |>
-            str_remove("Part ") |>
+            str_replace("1", "One") |>
+            str_replace("2", "Two") |>
+            # str_remove("Part ") |>
             # str_replace("Harry Potter and the ", rep(c("", "\n"), 4L)),
             str_remove("Harry Potter and the "),
         movie_abbr = factor(movie_abbr, movie_abbr, ordered = TRUE),
@@ -35,43 +38,88 @@ pdf1 <- sentiments |>
     filter(sentiment %in% c("anger", "disgust", "fear", "joy", "sadness")) |>
     count(movie_num, movie_name, movie_abbr, sentiment) |>
     group_by(movie_num) |>
-    mutate(score = n / sum(n))
+    mutate(
+        score = n / sum(n),
+        sentiment = factor(
+            sentiment,
+            levels = c("anger", "joy", "disgust", "sadness", "fear"),
+            ordered = TRUE
+        )
+    )
+
+
+# cols = c(
+#     anger = "#ef476f",
+#     disgust = "#06D6A0",
+#     fear = "#746AC7",
+#     joy = "#FAE97C",
+#     sadness = "#15AEE2",
+#     bg = "#343a40",
+#     text = "#f8f9fa",
+#     grid = "#7f7f7f"
+# )
+cols = c(
+    anger = "#ff595e",
+    joy = "#ffca3a",
+    disgust = "#8ac926",
+    sadness = "#1982c4",
+    fear = "#6a4c93",
+    bg = "#f0f0f0",
+    text = "#343a40",
+    grid = "#7f7f7f"
+)
+
+
+# https://www.qualitylogoproducts.com/blog/harry-potter-color-schemes/
+
 
 ggplot(pdf1) +
     aes(x = sentiment, y = score, fill = sentiment, group = movie_name) +
-    geom_col(position = "dodge") +
-    coord_polar() +
+    geom_col(position = "dodge", color = cols["text"]) +
+    # geom_chicklet(radius = grid::unit(1, "mm"), color = cols["text"]) +
     facet_wrap(~ movie_abbr, nrow = 2L) +
     labs(
         title = "Main Sentiments in Harry Potter Movies",
+        subtitle = "(relative to each other)",
         caption = "Code available on https://github.com/matthiasgomolka/hp_lara"
     ) +
+    scale_fill_manual(values = c(cols["anger"], cols["disgust"], cols["fear"], cols["joy"], cols["sadness"])) +
     theme_minimal() +
     # theme_void()
     theme(
         axis.title = element_blank(),
-        axis.text.y = element_blank(),
+        # axis.text = element_text(color = cols["text"]),
+        axis.text = element_blank(),
         axis.text.x = element_blank(),
         legend.position = "bottom",
         # legend.spacing.x = unit(1, "cm"),
-        legend.text = element_text(margin = margin(r = 2, unit = "cm")),
+        legend.text = element_text(size = 14, margin = margin(r = 2, unit = "cm"), vjust = 0.75),
         legend.title = element_blank(),
-        text = element_text(family = "Harry Potter"),
+        legend.key = element_rect(color = cols["text"], linewidth = 0.1),
 
+        text = element_text(family = "Harry Potter", color = cols["text"]),
+        plot.title = element_text(size = 24, hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5),
+        strip.text = element_text(size = 14, color = cols["text"]),
+
+        plot.background = element_rect(fill = cols["bg"]),
+        panel.background = element_rect(fill = cols["bg"], color = NA),
+        # panel.grid = element_line(color = cols["grid"]),
+        panel.grid = element_blank(),
         panel.spacing = unit(1.5, "cm")
     )
 
-ggplot(pdf1, aes(x = movie_abbr, y = score, fill = sentiment, color = sentiment, group = sentiment)) +
-    # geom_line() +
-    geom_col(position = "dodge") +
-    coord_polar() +
-    theme_minimal() +
-    # facet_wrap(~ movie)
-    theme(
-        axis.title = element_blank(),
-        axis.text.y = element_blank(),
-        legend.title = element_blank()
-    )
+# ggplot(pdf1, aes(x = movie_abbr, y = score, fill = sentiment, color = sentiment, group = sentiment)) +
+#     # geom_line() +
+#     geom_col(position = "dodge") +
+#     coord_polar() +
+#     theme_minimal() +
+#     # facet_wrap(~ movie)
+#     theme(
+#         axis.title = element_blank(),
+#         axis.text.y = element_blank(),
+#         legend.title = element_blank()
+#     )
 
 
 # tar_target(
